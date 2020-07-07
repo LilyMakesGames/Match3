@@ -1,16 +1,18 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 
 public class GameManager : MonoBehaviour
 {
     public enum GameState
     {
-        CheckingForReshuffle,
+        GameStart,
         Idle,
         Select,
-        Matching,
-        Reorganize
+        CheckEndGame,
+        GameEnd
     }
 
     public static GameManager instance;
@@ -19,6 +21,15 @@ public class GameManager : MonoBehaviour
 
     public GameState gameState;
     Node currentSelectedNode;
+
+    public int comboCount;
+    int score = 0;
+    int scoreToBeat;
+
+    [SerializeField]
+    TextMeshProUGUI scoreText;
+    [SerializeField]
+    TextMeshProUGUI scoreToBeatText;
 
     private void Awake()
     {
@@ -33,11 +44,16 @@ public class GameManager : MonoBehaviour
         gameState = GameState.Idle;
     }
 
+    public void Start()
+    {
+        UpdateScore();
+    }
+
     public void Update()
     {
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            nodeBoard.ShuffleBoard();
+            Debug.Log(nodeBoard.CheckForPossibleCombinations());
         }
     }
 
@@ -55,9 +71,16 @@ public class GameManager : MonoBehaviour
                 {
                     nodeBoard.SwapNodes(node, currentSelectedNode);
                     currentSelectedNode.spriteRenderer.color = Color.white;
+                    if (nodeBoard.CheckForCombination().Count > 0)
+                    {
+                        nodeBoard.ReorganizeLoop();
+                    }
+                    else
+                    {
+                        nodeBoard.SwapNodes(node, currentSelectedNode);
+                    }
                     gameState = GameState.Idle;
                     currentSelectedNode = null;
-                    nodeBoard.ReorganizeLoop();
                 }
                 else
                 {
@@ -68,5 +91,17 @@ public class GameManager : MonoBehaviour
                 break;
         }
     }
+
+    public void AddScore(int nodesDeleted)
+    {
+        score += nodesDeleted * comboCount * 100;
+        UpdateScore();
+    }
+
+    public void UpdateScore()
+    {
+        scoreText.text = $"Score: {score}";
+    }
+
 
 }

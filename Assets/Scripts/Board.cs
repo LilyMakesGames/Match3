@@ -32,6 +32,12 @@ public class Board : MonoBehaviour
         nodeBoard = new Node[8, 12];
         nodeWorldPositions = new Vector2[8, 12];
 
+        CreateBoard();
+        FirstReorganize();
+    }
+
+    void CreateBoard()
+    {
         for (int i = 0; i < nodeBoard.GetLength(0); i++)
         {
             for (int j = 0; j < nodeBoard.GetLength(1); j++)
@@ -45,7 +51,22 @@ public class Board : MonoBehaviour
                 nodeBoard[i, j].Initialize();
             }
         }
-        ReorganizeLoop();
+    }
+
+    void FirstReorganize()
+    {
+        List<List<Node>> matchList = CheckForCombination();
+        while (matchList.Count > 0)
+        {
+            foreach (List<Node> listNodes in matchList)
+            {
+                ClearCombinations(listNodes);
+            }
+            OrganizeBoard();
+            FillEmptySpaces();
+            matchList = CheckForCombination();
+        }
+
     }
 
     Bounds GetCameraBounds(Camera camera)
@@ -177,6 +198,30 @@ public class Board : MonoBehaviour
         return listMatches;
     }
 
+    public bool CheckForPossibleCombinations()
+    {
+        List<List<Node>> listMatches = new List<List<Node>>();
+        foreach (var item in nodeBoard)
+        {
+            for (int i = 0; i < directions.Length - 1; i++)
+            {
+                List<Node> nodes = GetMatches(GetNodeBoardPosition(item), directions[i]);
+                if (nodes.Count >= 2)
+                {
+                    List<Node> adjacentNextNode = GetAllAdjacentNodes(GetNodeBoardPosition(nodes[nodes.Count - 1]));
+                    foreach (var nodeInAdjacentList in adjacentNextNode)
+                    {
+                        if (nodeInAdjacentList != null && nodeInAdjacentList.gem.ID == item.gem.ID && !nodes.Contains(nodeInAdjacentList))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     public void ClearCombinations(List<Node> nodes)
     {
         foreach (var node in nodes)
@@ -188,18 +233,7 @@ public class Board : MonoBehaviour
 
     public void ReorganizeLoop()
     {
-        List<List<Node>> matchList = CheckForCombination();
-        while (matchList.Count > 0)
-        {
-            foreach (List<Node> listNodes in matchList)
-            {
-                ClearCombinations(listNodes);
-            }
-            OrganizeBoard();
-            FillEmptySpaces();
-            matchList = CheckForCombination();
-        }
-
+        StartCoroutine(FallingBlocks());
     }
 
     public void ShuffleBoard()
@@ -209,7 +243,7 @@ public class Board : MonoBehaviour
         {
             nodeList.Add(node);
         }
-        for (int i = nodeList.Count-1; i > 0 ; i--)
+        for (int i = nodeList.Count - 1; i > 0; i--)
         {
             int k = Random.Range(0, i);
             Node result = nodeList[k];
@@ -220,7 +254,7 @@ public class Board : MonoBehaviour
         {
             for (int j = 0; j < nodeBoard.GetLength(1); j++)
             {
-                nodeBoard[i, j] = nodeList[(i*nodeBoard.GetLength(1)) + j];
+                nodeBoard[i, j] = nodeList[(i * nodeBoard.GetLength(1)) + j];
                 nodeBoard[i, j].transform.position = nodeWorldPositions[i, j];
             }
         }
@@ -248,5 +282,34 @@ public class Board : MonoBehaviour
 
         nodeBoard[node1Location.x, node1Location.y].transform.position = nodeWorldPositions[node1Location.x, node1Location.y];
         nodeBoard[node2Location.x, node2Location.y].transform.position = nodeWorldPositions[node2Location.x, node2Location.y];
+        nodeBoard[node1Location.x, node1Location.y].gameObject.name = $"({node1Location.x},{node1Location.y})";
+        nodeBoard[node2Location.x, node2Location.y].gameObject.name = $"({node2Location.x},{node2Location.y})";
+    }
+
+    IEnumerator FallingBlocks()
+    {
+        List<List<Node>> matchList = CheckForCombination();
+        if (matchList.Count > 0)
+        {
+            yield return new WaitForSeconds(0.1f);
+            GameManager.instance.comboCount++;
+            foreach (List<Node> listNodes in matchList)
+            {
+                GameManager.instance.AddScore(listNodes.Count);
+                ClearCombinations(listNodes);
+            }
+            OrganizeBoard();
+            FillEmptySpaces();
+            StartCoroutine(FallingBlocks());
+        }
+        else
+        {
+            GameManager.instance.comboCount = 0;
+            if (!CheckForPossibleCombinations())
+            {
+                ShuffleBoard();
+                StartCoroutine(FallingBlocks());
+            }
+        }
     }
 }
