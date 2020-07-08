@@ -64,9 +64,6 @@ public class GameManager : MonoBehaviour
         gameState = GameState.Idle;
     }
 
-    public void Start()
-    {
-    }
 
     public void StartGame()
     {
@@ -97,14 +94,6 @@ public class GameManager : MonoBehaviour
         currentStage = 1;
         gameOverPanel.SetActive(false);
         SetGameDefinitions();
-    }
-
-    public void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            Debug.Log(nodeBoard.CheckForPossibleCombinations());
-        }
     }
 
     public void StageBeat()
