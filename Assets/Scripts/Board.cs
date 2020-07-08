@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Board : MonoBehaviour
 {
-    public Vector2 nodeBoardSize;
+    public Vector2Int nodeBoardSize;
     public GameObject nodePrefab, boardParent;
     public Node[,] nodeBoard;
     Vector2[,] nodeWorldPositions;
@@ -29,14 +29,12 @@ public class Board : MonoBehaviour
         cameraBounds = GetCameraBounds(Camera.main);
         availableGems = Resources.LoadAll("Gems", typeof(Gem));
 
-        nodeBoard = new Node[8, 12];
-        nodeWorldPositions = new Vector2[8, 12];
+        nodeBoard = new Node[nodeBoardSize.x, nodeBoardSize.y];
+        nodeWorldPositions = new Vector2[nodeBoardSize.x, nodeBoardSize.y];
 
-        CreateBoard();
-        FirstReorganize();
     }
 
-    void CreateBoard()
+    public void CreateBoard()
     {
         for (int i = 0; i < nodeBoard.GetLength(0); i++)
         {
@@ -46,14 +44,14 @@ public class Board : MonoBehaviour
                 nodeBoard[i, j] = currentNode.GetComponent<Node>();
                 nodeBoard[i, j].gem = availableGems[Random.Range(0, availableGems.Length)] as Gem;
                 currentNode.name = "(" + i + "," + j + ")";
-                currentNode.transform.position = new Vector3(-cameraBounds.extents.x + (i * cameraBounds.extents.x / (nodeBoardSize.x / 2)) + cameraBounds.extents.x / nodeBoardSize.x, cameraBounds.extents.y - (j * cameraBounds.extents.y / 8) - cameraBounds.extents.y / 8, 0);
+                currentNode.transform.position = new Vector3(-cameraBounds.extents.x + (i * cameraBounds.extents.x / (nodeBoardSize.x / 2)) + cameraBounds.extents.x / nodeBoardSize.x, cameraBounds.extents.y - ((j * cameraBounds.extents.y / (nodeBoardSize.y/2)) + cameraBounds.extents.y / nodeBoardSize.y)/1.3f, 0);
                 nodeWorldPositions[i, j] = currentNode.transform.position;
                 nodeBoard[i, j].Initialize();
             }
         }
     }
 
-    void FirstReorganize()
+    public void FirstReorganize()
     {
         List<List<Node>> matchList = CheckForCombination();
         while (matchList.Count > 0)
@@ -140,19 +138,6 @@ public class Board : MonoBehaviour
         }
         return matchingNodes;
     }
-
-    //public bool CheckForEmptySpace(Node node)
-    //{
-    //    Node downNode = GetAdjacentNode(GetNodeBoardPosition(node), Vector2Int.down);
-    //    if (downNode != null)
-    //    {
-    //        if (!downNode.active)
-    //        {
-    //            return true;
-    //        }
-    //    }
-    //    return false;
-    //}
 
     public void OrganizeBoard()
     {
@@ -298,12 +283,14 @@ public class Board : MonoBehaviour
                 GameManager.instance.AddScore(listNodes.Count);
                 ClearCombinations(listNodes);
             }
+            GameManager.instance.PlaySound(GameManager.instance.clearSound);
             OrganizeBoard();
             FillEmptySpaces();
             StartCoroutine(FallingBlocks());
         }
         else
         {
+            //GameManager.instance.StageBeat();
             GameManager.instance.comboCount = 0;
             if (!CheckForPossibleCombinations())
             {
